@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Edit Moltbook</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 24px; background: #0f172a; color: #e5e7eb; }
+    input, textarea, button { width: 100%; padding: 8px; margin-top: 8px; background: #0b1220; border: 1px solid #1f2937; color: #e5e7eb; border-radius: 6px; }
+    button { cursor: pointer; }
+    a { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <a href="/">Back</a>
+  <h2>Edit Moltbook Queue Item</h2>
+  <form method="post" action="/queue/moltbook/update">
+    <input type="hidden" name="qid" value="{{ item.qid }}"/>
+    {% if item.action == "create_post" %}
+      <label>Title</label>
+      <input name="title" value="{{ item.spec.title }}"/>
+      <input type="hidden" name="post_id" value=""/>
+    {% else %}
+      <label>Post ID</label>
+      <input name="post_id" value="{{ item.spec.post_id }}"/>
+      <input type="hidden" name="title" value=""/>
+    {% endif %}
+    <label>Body</label>
+    <textarea name="body" rows="16">{{ body }}</textarea>
+    <button type="submit">Save</button>
+  </form>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Companion Dashboard</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 24px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 18px; }
+    th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; }
+    code { background: #f2f2f2; padding: 2px 4px; border-radius: 4px; }
+    pre { white-space: pre-wrap; }
+    form { display: inline-flex; gap: 8px; align-items: center; }
+  </style>
+</head>
+<body>
+  <h1>Companion Dashboard</h1>
+
+  <h2>Send queue</h2>
+  <form method="post" action="/approve/send">
+    <label>qid</label><input name="qid" placeholder="send_<thread_id>" required/>
+    <label>ttl</label><input name="ttl" value="600"/>
+    <button type="submit">Approve</button>
+  </form>
+  <table>
+    <tr><th>qid</th><th>status</th><th>approved_by</th><th>approved_at</th><th>spec_hash</th><th>to</th><th>subject</th><th>actions</th></tr>
+    {% for it in send %}
+    <tr>
+      <td><code>{{it.qid}}</code></td>
+      <td>{{it.status}}</td>
+      <td>{{it.approved_by}}</td>
+      <td>{{it.approved_at}}</td>
+      <td><code>{{it.spec_hash}}</code></td>
+      <td>{{it.spec.to}}</td>
+      <td>{{it.spec.subject}}</td>
+      <td>
+        {% if it.status == "pending" and not it.approval_token %}
+        <form method="post" action="/approve/send">
+          <input type="hidden" name="qid" value="{{it.qid}}"/>
+          <input type="hidden" name="ttl" value="600"/>
+          <button type="submit">Approve</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h2>Event queue</h2>
+  <form method="post" action="/approve/event">
+    <label>qid</label><input name="qid" placeholder="create_event_<...>" required/>
+    <label>ttl</label><input name="ttl" value="600"/>
+    <button type="submit">Approve</button>
+  </form>
+  <table>
+    <tr><th>qid</th><th>status</th><th>approved_by</th><th>approved_at</th><th>spec_hash</th><th>title</th><th>start</th><th>end</th><th>actions</th></tr>
+    {% for it in cal %}
+    <tr>
+      <td><code>{{it.qid}}</code></td>
+      <td>{{it.status}}</td>
+      <td>{{it.approved_by}}</td>
+      <td>{{it.approved_at}}</td>
+      <td><code>{{it.spec_hash}}</code></td>
+      <td>{{it.spec.title}}</td>
+      <td>{{it.spec.start_iso}}</td>
+      <td>{{it.spec.end_iso}}</td>
+      <td>
+        {% if it.status == "pending" and not it.approval_token %}
+        <form method="post" action="/approve/event">
+          <input type="hidden" name="qid" value="{{it.qid}}"/>
+          <input type="hidden" name="ttl" value="600"/>
+          <button type="submit">Approve</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h2>Moltbook queue</h2>
+  <form method="post" action="/approve/moltbook_post">
+    <label>qid</label><input name="qid" placeholder="molt_post_<...>" required/>
+    <label>ttl</label><input name="ttl" value="600"/>
+    <button type="submit">Approve post</button>
+  </form>
+  <form method="post" action="/approve/moltbook_reply">
+    <label>qid</label><input name="qid" placeholder="molt_reply_<post_id>" required/>
+    <label>ttl</label><input name="ttl" value="600"/>
+    <button type="submit">Approve reply</button>
+  </form>
+  <table>
+    <tr><th>qid</th><th>status</th><th>approved_by</th><th>approved_at</th><th>spec_hash</th><th>action</th><th>post_id</th><th>title</th><th>actions</th></tr>
+    {% for it in molt %}
+    <tr>
+      <td><code>{{it.qid}}</code></td>
+      <td>{{it.status}}</td>
+      <td>{{it.approved_by}}</td>
+      <td>{{it.approved_at}}</td>
+      <td><code>{{it.spec_hash}}</code></td>
+      <td>{{it.action}}</td>
+      <td>{{it.spec.post_id}}</td>
+      <td>{{it.spec.title}}</td>
+      <td>
+        {% if it.status == "pending" and not it.approval_token %}
+        {% if it.action == "create_post" %}
+        <form method="post" action="/approve/moltbook_post">
+          <input type="hidden" name="qid" value="{{it.qid}}"/>
+          <input type="hidden" name="ttl" value="600"/>
+          <button type="submit">Approve post</button>
+        </form>
+        {% else %}
+        <form method="post" action="/approve/moltbook_reply">
+          <input type="hidden" name="qid" value="{{it.qid}}"/>
+          <input type="hidden" name="ttl" value="600"/>
+          <button type="submit">Approve reply</button>
+        </form>
+        {% endif %}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</body>
+</html>

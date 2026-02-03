@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Companion Chat</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 0; background: #0f172a; color: #e5e7eb; }
+    header { padding: 16px 24px; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }
+    main { padding: 24px; display: grid; gap: 16px; }
+    .chat { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 16px; min-height: 280px; }
+    .msg { padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; }
+    .msg.user { background: #0b1220; }
+    .msg.assistant { background: #0b2433; }
+    .muted { color: #9ca3af; font-size: 12px; }
+    textarea, input, button, select { width: 100%; padding: 8px; background: #0b1220; border: 1px solid #1f2937; color: #e5e7eb; border-radius: 6px; }
+    button { cursor: pointer; }
+    a { color: #38bdf8; }
+    .row { display: grid; gap: 8px; }
+    .cols { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>Chat</h2>
+    <div class="row" style="grid-auto-flow: column;">
+      <a href="/">Control Panel</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="chat" id="chat-log">
+      {% for m in messages %}
+      <div class="msg {{ m.role }}">
+        <div class="muted">{{ m.role }} · {{ m.ts }}</div>
+        <div>{{ m.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <form class="row" id="chat-form" method="post" action="/chat/send">
+      <div class="cols">
+        <div>
+          <label>Provider</label>
+          <select name="provider" id="provider">
+            <option value="ollama" {% if provider == "ollama" %}selected{% endif %}>ollama</option>
+            <option value="openai" {% if provider == "openai" %}selected{% endif %}>openai</option>
+            <option value="anthropic" {% if provider == "anthropic" %}selected{% endif %}>anthropic</option>
+          </select>
+        </div>
+        <div>
+          <label>Model</label>
+          <input name="model" id="model" value="{{ model }}" placeholder="model name"/>
+        </div>
+      </div>
+      <label>Base URL (optional override)</label>
+      <input name="base_url" id="base_url" value="{{ base_url }}" placeholder="http://localhost:11434"/>
+      <label>System prompt (optional)</label>
+      <textarea name="system_prompt" id="system_prompt" rows="2" placeholder="System prompt...">{{ system_prompt }}</textarea>
+      <label>Your message</label>
+      <textarea name="message" id="message" rows="4" placeholder="Say something..."></textarea>
+      <button type="submit">Send</button>
+    </form>
+
+    <form method="post" action="/chat/clear">
+      <button type="submit">Clear chat</button>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const chatLog = document.getElementById('chat-log');
+
+    function addMessage(role, content) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      const meta = document.createElement('div');
+      meta.className = 'muted';
+      meta.textContent = role + ' · ' + new Date().toISOString();
+      const body = document.createElement('div');
+      body.textContent = content;
+      div.appendChild(meta);
+      div.appendChild(body);
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+      return body;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const msg = (fd.get('message') || '').toString().trim();
+      if (!msg) return;
+      addMessage('user', msg);
+      fd.set('message', msg);
+      const assistantBody = addMessage('assistant', '');
+      try {
+        const res = await fetch('/chat/stream', { method: 'POST', body: fd });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let full = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          full += chunk;
+          assistantBody.textContent = full;
+        }
+      } catch (err) {
+        assistantBody.textContent = 'Streaming failed; try again.';
+      }
+      form.reset();
+    });
+  </script>
+</body>
+</html>

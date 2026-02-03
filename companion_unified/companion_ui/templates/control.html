@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Companion Control Panel</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --accent: #38bdf8;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --border: #1f2937;
+    }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+    header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    main { padding: 24px; display: grid; gap: 20px; }
+    h1 { margin: 0; font-size: 20px; }
+    h2 { margin: 0 0 12px 0; font-size: 16px; }
+    a { color: var(--accent); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .pill { padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    .pill.ok { background: rgba(16,185,129,0.2); color: var(--ok); }
+    .pill.warn { background: rgba(245,158,11,0.2); color: var(--warn); }
+    .pill.err { background: rgba(239,68,68,0.2); color: var(--err); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid var(--border); padding: 8px; vertical-align: top; }
+    th { background: #0b1220; text-align: left; }
+    input, textarea, select, button { background: #0b1220; border: 1px solid var(--border); color: var(--text); padding: 6px 8px; border-radius: 6px; }
+    button { cursor: pointer; }
+    code { background: #0b1220; padding: 2px 4px; border-radius: 4px; }
+    .muted { color: var(--muted); }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Companion Control Panel</h1>
+    <div class="row">
+      <span class="muted">Artifacts:</span> <code>{{ artifacts_dir }}</code>
+      <a href="/artifacts">Browse</a>
+      <a href="/chat">Chat</a>
+      <a href="/logout">Logout</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <div class="card">
+        <h2>Kernel</h2>
+        <div class="row">
+          {% if kernel.running %}
+          <span class="pill ok">running</span>
+          <span class="muted">pid {{ kernel.pid }}</span>
+          {% else %}
+          <span class="pill warn">stopped</span>
+          {% endif %}
+        </div>
+        <form class="row" method="post" action="/control/kernel/start">
+          <label>ticks <input name="ticks" value="5"/></label>
+          <label>use_google <input type="checkbox" name="use_google"/></label>
+          <label>repos <input name="repos" placeholder="/path/a,/path/b"/></label>
+          <button type="submit">Start</button>
+        </form>
+        <form class="row" method="post" action="/control/kernel/stop">
+          <button type="submit">Stop</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Executor</h2>
+        <div class="row">
+          {% if executor.running %}
+          <span class="pill ok">running</span>
+          <span class="muted">pid {{ executor.pid }}</span>
+          {% else %}
+          <span class="pill warn">stopped</span>
+          {% endif %}
+        </div>
+        <form class="row" method="post" action="/control/executor/start">
+          <button type="submit">Start</button>
+        </form>
+        <form class="row" method="post" action="/control/executor/stop">
+          <button type="submit">Stop</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Send Queue</h2>
+      <table>
+        <tr><th>qid</th><th>status</th><th>approved</th><th>to</th><th>subject</th><th>actions</th></tr>
+        {% for it in send %}
+        <tr>
+          <td><code>{{ it.qid }}</code></td>
+          <td>{{ it.status }}</td>
+          <td>{{ it.approved_by }} {{ it.approved_at }}</td>
+          <td>{{ it.spec.to }}</td>
+          <td>{{ it.spec.subject }}</td>
+          <td class="actions">
+            <a href="/queue/send/edit?qid={{ it.qid }}">Edit</a>
+            {% if it.status == "pending" and not it.approval_token %}
+            <form method="post" action="/approve/send">
+              <input type="hidden" name="qid" value="{{ it.qid }}"/>
+              <input type="hidden" name="ttl" value="600"/>
+              <button type="submit">Approve</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Calendar Queue</h2>
+      <table>
+        <tr><th>qid</th><th>status</th><th>approved</th><th>title</th><th>start</th><th>end</th><th>actions</th></tr>
+        {% for it in cal %}
+        <tr>
+          <td><code>{{ it.qid }}</code></td>
+          <td>{{ it.status }}</td>
+          <td>{{ it.approved_by }} {{ it.approved_at }}</td>
+          <td>{{ it.spec.title }}</td>
+          <td>{{ it.spec.start_iso }}</td>
+          <td>{{ it.spec.end_iso }}</td>
+          <td class="actions">
+            <a href="/queue/event/edit?qid={{ it.qid }}">Edit</a>
+            {% if it.status == "pending" and not it.approval_token %}
+            <form method="post" action="/approve/event">
+              <input type="hidden" name="qid" value="{{ it.qid }}"/>
+              <input type="hidden" name="ttl" value="600"/>
+              <button type="submit">Approve</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Moltbook Queue</h2>
+      <table>
+        <tr><th>qid</th><th>action</th><th>status</th><th>approved</th><th>post_id</th><th>title</th><th>actions</th></tr>
+        {% for it in molt %}
+        <tr>
+          <td><code>{{ it.qid }}</code></td>
+          <td>{{ it.action }}</td>
+          <td>{{ it.status }}</td>
+          <td>{{ it.approved_by }} {{ it.approved_at }}</td>
+          <td>{{ it.spec.post_id }}</td>
+          <td>{{ it.spec.title }}</td>
+          <td class="actions">
+            <a href="/queue/moltbook/edit?qid={{ it.qid }}">Edit</a>
+            {% if it.status == "pending" and not it.approval_token %}
+              {% if it.action == "create_post" %}
+              <form method="post" action="/approve/moltbook_post">
+                <input type="hidden" name="qid" value="{{ it.qid }}"/>
+                <input type="hidden" name="ttl" value="600"/>
+                <button type="submit">Approve post</button>
+              </form>
+              {% else %}
+              <form method="post" action="/approve/moltbook_reply">
+                <input type="hidden" name="qid" value="{{ it.qid }}"/>
+                <input type="hidden" name="ttl" value="600"/>
+                <button type="submit">Approve reply</button>
+              </form>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Ledger (latest)</h2>
+      <table>
+        <tr><th>ts</th><th>kind</th><th>details</th></tr>
+        {% for it in ledger %}
+        <tr>
+          <td>{{ it.ts }}</td>
+          <td>{{ it.kind }}</td>
+          <td><pre style="white-space: pre-wrap; margin:0">{{ it }}</pre></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </main>
+</body>
+</html>

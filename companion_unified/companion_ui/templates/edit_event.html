@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Edit Event</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 24px; background: #0f172a; color: #e5e7eb; }
+    input, textarea, button { width: 100%; padding: 8px; margin-top: 8px; background: #0b1220; border: 1px solid #1f2937; color: #e5e7eb; border-radius: 6px; }
+    button { cursor: pointer; }
+    a { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <a href="/">Back</a>
+  <h2>Edit Calendar Queue Item</h2>
+  <form method="post" action="/queue/event/update">
+    <input type="hidden" name="qid" value="{{ item.qid }}"/>
+    <label>Title</label>
+    <input name="title" value="{{ item.spec.title }}"/>
+    <label>Start (ISO)</label>
+    <input name="start_iso" value="{{ item.spec.start_iso }}"/>
+    <label>End (ISO)</label>
+    <input name="end_iso" value="{{ item.spec.end_iso }}"/>
+    <label>Attendees (comma-separated)</label>
+    <input name="attendees" value="{{ item.spec.attendees | join(",") }}"/>
+    <label>Description</label>
+    <textarea name="description" rows="14">{{ body }}</textarea>
+    <button type="submit">Save</button>
+  </form>
+</body>
+</html>

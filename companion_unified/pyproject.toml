@@ -1,0 +1,18 @@
+[project]
+name = "companion-unified"
+version = "0.3.0"
+description = "Deterministic companion kernel with planner->gate->controller, approval dashboard, and execution daemon."
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML>=6.0.1",
+  "pydantic>=2.7",
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "google-api-python-client>=2.120",
+  "google-auth>=2.27",
+  "google-auth-oauthlib>=1.2",
+]
+
+[project.scripts]
+companion = "companion.main:main"
+companion-exec = "companion_exec.daemon:main"
